@@ -59,7 +59,6 @@
       cursor: pointer;
       font-weight: 600;
     }
-    .btn-view { background: #10b981; color: #064e3b; }
     .btn-dismiss { background: transparent; color: #a7f3d0; border: 1px solid #10b981; }
     #messages {
       flex: 1;
@@ -95,6 +94,20 @@
       color: #fbbf24;
     }
     .badge-ready { background: #10b981; color: #064e3b; font-weight: 700; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    .thinking-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #38bdf8;
+      animation: pulse 1.2s infinite ease-in-out;
+      vertical-align: middle;
+    }
     form {
       display: flex;
       gap: 10px;
@@ -121,21 +134,6 @@
       cursor: pointer;
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    @keyframes pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-.thinking-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: #38bdf8;
-  animation: pulse 1.2s infinite ease-in-out;
-  vertical-align: middle;
-}
   </style>
 </head>
 <body>
@@ -244,7 +242,28 @@
       input.value = "";
       sendBtn.disabled = true;
 
-      const loading = addMessage("Checking notes...", "bot");
+      const loading = document.createElement("div");
+      loading.className = "msg bot";
+      loading.innerHTML = `<span class="thinking-dot"></span><span id="status-text">Checking notes... (0s)</span>`;
+      messages.appendChild(loading);
+      messages.scrollTop = messages.scrollHeight;
+
+      let seconds = 0;
+      const statusMessages = [
+        "Checking notes...",
+        "Searching PC docs...",
+        "Model is busy, trying backup...",
+        "Almost there, thanks for waiting..."
+      ];
+
+      const timer = setInterval(() => {
+        seconds++;
+        const stage = Math.min(Math.floor(seconds / 4), statusMessages.length - 1);
+        const statusEl = loading.querySelector("#status-text");
+        if (statusEl) {
+          statusEl.textContent = `${statusMessages[stage]} (${seconds}s)`;
+        }
+      }, 1000);
 
       try {
         const res = await fetch(CHAT_URL, {
@@ -253,6 +272,7 @@
           body: JSON.stringify({ question: q })
         });
         const data = await res.json();
+        clearInterval(timer);
         loading.remove();
 
         if (!res.ok) {
@@ -275,6 +295,7 @@
           }
         }
       } catch (err) {
+        clearInterval(timer);
         loading.remove();
         addMessage("Network error reaching the bot server.", "bot");
       } finally {
@@ -283,7 +304,6 @@
       }
     });
 
-    // Check immediately when page loads, and every 15 seconds while open
     checkPendingAnswers();
     setInterval(checkPendingAnswers, 15000);
   </script>
