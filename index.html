@@ -164,11 +164,12 @@
     const sendBtn = document.getElementById("send-btn");
     const banner = document.getElementById("notify-banner");
 
-    function getPendingTickets() {
+   function getPendingTickets() {
       try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : new Array();
       } catch {
-        return [];
+        return new Array();
       }
     }
 
