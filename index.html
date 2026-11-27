@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smacklebot — PC Knowledge Assistant</title>
+  <title>Smacklebot — PC & Gaming Knowledge Assistant</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -124,7 +124,7 @@
       color: var(--text);
       font-size: 1rem;
     }
-    button[type="submit"] {
+    button.send-btn {
       padding: 12px 20px;
       border: none;
       border-radius: 8px;
@@ -140,15 +140,15 @@
   <div class="app">
     <header>
       <h1>Smacklebot</h1>
-      <p>Answers strictly from my verified PC notes. Missing questions get sent to me to review.</p>
+      <p>Answers strictly from my verified PC &amp; gaming notes. Missing questions get sent to me to review.</p>
     </header>
     <div id="notify-banner"></div>
     <div id="messages">
-      <div class="msg bot">Hey! Ask me any PC build, hardware, or troubleshooting question. If it's not in my notes yet, I'll ping my creator to add it—and notify you right here once it's answered!</div>
+      <div class="msg bot">Hey! Ask me any PC build, hardware, troubleshooting, or gaming question. If it's not in my notes yet, I'll ping my creator to add it—and notify you right here once it's answered!</div>
     </div>
     <form id="chat-form">
-      <input id="question" type="text" placeholder="Ask a PC question..." required autocomplete="off" />
-      <button id="send-btn" type="submit">Send</button>
+      <input id="question" type="text" placeholder="Ask a PC or gaming question..." required autocomplete="off" />
+      <button id="send-btn" class="send-btn" type="submit">Send</button>
     </form>
   </div>
 
@@ -164,11 +164,11 @@
     const sendBtn = document.getElementById("send-btn");
     const banner = document.getElementById("notify-banner");
 
-   function getPendingTickets() {
+    function getPendingTickets() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw ? JSON.parse(raw) : new Array();
-      } catch {
+      } catch (e) {
         return new Array();
       }
     }
@@ -179,7 +179,7 @@
 
     function addMessage(text, sender, badgeText = "", isAnsweredCard = false) {
       const div = document.createElement("div");
-      div.className = isAnsweredCard ? "msg answered-card" : `msg ${sender}`;
+      div.className = isAnsweredCard ? "msg answered-card" : "msg " + sender;
       if (badgeText) {
         const badge = document.createElement("div");
         badge.className = isAnsweredCard ? "badge badge-ready" : "badge";
@@ -197,72 +197,72 @@
       const pending = getPendingTickets();
       if (pending.length === 0) return;
 
-      const ids = pending.map(t => t.id).join(",");
+      const ids = pending.map(function(t) { return t.id; }).join(",");
       try {
         const res = await fetch(STATUS_URL + "?ids=" + encodeURIComponent(ids));
         if (!res.ok) return;
         const data = await res.json();
 
         if (data.resolved && data.resolved.length > 0) {
-          const resolvedIds = new Set(data.resolved.map(r => r.id));
-          savePendingTickets(pending.filter(t => !resolvedIds.has(t.id)));
+          const resolvedIds = new Set(data.resolved.map(function(r) { return r.id; }));
+          savePendingTickets(pending.filter(function(t) { return !resolvedIds.has(t.id); }));
 
           for (const item of data.resolved) {
             addMessage(
-              `Question: "${item.question}"\n\n${item.answer}`,
+              "Question: \"" + item.question + "\"\n\n" + item.answer,
               "bot",
               "Creator Verified Answer Ready!",
               true
             );
 
             banner.style.display = "block";
-            banner.innerHTML = `
-              <strong>New Answer Available!</strong>
-              Your question "${item.question}" was just answered and added to the knowledge base.
-              <div class="banner-actions">
-                <button class="banner-btn btn-dismiss" onclick="document.getElementById('notify-banner').style.display='none'">Dismiss</button>
-              </div>
-            `;
+            banner.innerHTML = [
+              "<strong>New Answer Available!</strong>",
+              "Your question \"" + item.question + "\" was just answered and added to the knowledge base.",
+              "<div class='banner-actions'>",
+              "<button class='banner-btn btn-dismiss' onclick=\"document.getElementById('notify-banner').style.display='none'\">Dismiss</button>",
+              "</div>"
+            ].join("\n");
 
             if ("Notification" in window && Notification.permission === "granted") {
               new Notification("Smacklebot Answer Ready!", {
-                body: `Answered: "${item.question}"`
+                body: "Answered: \"" + item.question + "\""
               });
             }
           }
         }
-      } catch {}
+      } catch (e) {}
     }
 
-    form.addEventListener("submit", async (e) => {
+    form.addEventListener("submit", async function(e) {
       e.preventDefault();
       const q = input.value.trim();
       if (!q) return;
-      
+
       addMessage(q, "user");
       input.value = "";
       sendBtn.disabled = true;
 
       const loading = document.createElement("div");
       loading.className = "msg bot";
-      loading.innerHTML = `<span class="thinking-dot"></span><span id="status-text">Checking notes... (0s)</span>`;
+      loading.innerHTML = "<span class='thinking-dot'></span><span id='status-text'>Checking notes... (0s)</span>";
       messages.appendChild(loading);
       messages.scrollTop = messages.scrollHeight;
 
       let seconds = 0;
-      const statusMessages = [
+      const statusMessages = new Array(
         "Checking notes...",
         "Searching PC docs...",
         "Model is busy, trying backup...",
         "Almost there, thanks for waiting..."
-      ];
+      );
 
-      const timer = setInterval(() => {
+      const timer = setInterval(function() {
         seconds++;
         const stage = Math.min(Math.floor(seconds / 4), statusMessages.length - 1);
         const statusEl = loading.querySelector("#status-text");
         if (statusEl) {
-          statusEl.textContent = `${statusMessages[stage]} (${seconds}s)`;
+          statusEl.textContent = statusMessages.at(stage) + " (" + seconds + "s)";
         }
       }, 1000);
 
@@ -276,8 +276,8 @@
         clearInterval(timer);
         loading.remove();
 
-         if (!res.ok) {
-          addMessage(`Error: ${data.error || "Something went wrong."}`, "bot");
+        if (!res.ok) {
+          addMessage("Error: " + (data.error || "Something went wrong."), "bot");
         } else {
           let badge = "";
           if (data.onTopic === false) {
@@ -288,17 +288,6 @@
           addMessage(data.answer, "bot", badge);
 
           if (data.onTopic !== false && !data.found && data.ticketId) {
-            const pending = getPendingTickets();
-            pending.push({ id: data.ticketId, question: q });
-            savePendingTickets(pending);
-
-            if ("Notification" in window && Notification.permission === "default") {
-              Notification.requestPermission();
-            }
-          }
-        }
-
-          if (!data.found && data.ticketId) {
             const pending = getPendingTickets();
             pending.push({ id: data.ticketId, question: q });
             savePendingTickets(pending);
@@ -320,7 +309,11 @@
 
     checkPendingAnswers();
     setInterval(checkPendingAnswers, 15000);
+
+       });
+
+    checkPendingAnswers();
+    setInterval(checkPendingAnswers, 15000);
   </script>
 </body>
 </html>
-
