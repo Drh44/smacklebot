@@ -121,6 +121,21 @@
       cursor: pointer;
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.thinking-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  animation: pulse 1.2s infinite ease-in-out;
+  vertical-align: middle;
+}
   </style>
 </head>
 <body>
