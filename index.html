@@ -238,7 +238,7 @@
       e.preventDefault();
       const q = input.value.trim();
       if (!q) return;
-
+      
       addMessage(q, "user");
       input.value = "";
       sendBtn.disabled = true;
@@ -276,14 +276,27 @@
         clearInterval(timer);
         loading.remove();
 
-        if (!res.ok) {
+         if (!res.ok) {
           addMessage(`Error: ${data.error || "Something went wrong."}`, "bot");
         } else {
-          addMessage(
-            data.answer,
-            "bot",
-            !data.found ? "Sent to creator for review — I'll notify you here when answered!" : ""
-          );
+          let badge = "";
+          if (data.onTopic === false) {
+            badge = "Off-topic (PC & Gaming only)";
+          } else if (!data.found) {
+            badge = "Sent to creator for review — I'll notify you here when answered!";
+          }
+          addMessage(data.answer, "bot", badge);
+
+          if (data.onTopic !== false && !data.found && data.ticketId) {
+            const pending = getPendingTickets();
+            pending.push({ id: data.ticketId, question: q });
+            savePendingTickets(pending);
+
+            if ("Notification" in window && Notification.permission === "default") {
+              Notification.requestPermission();
+            }
+          }
+        }
 
           if (!data.found && data.ticketId) {
             const pending = getPendingTickets();
